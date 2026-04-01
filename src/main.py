@@ -32,21 +32,35 @@ def generate_daily_report(date_str: str):
     summarizer = KimiSummarizer()
     report_gen = ReportGenerator()
     
+    all_items = []
+    
     # 收集 LKML 数据
     logger.info("收集 LKML 数据...")
-    lkml_collector = LKMLCollector()
-    lkml_data = lkml_collector.fetch(date_str)
-    logger.info(f"LKML 收集完成: {len(lkml_data)} 条")
+    try:
+        lkml_collector = LKMLCollector()
+        lkml_data = lkml_collector.fetch(date_str)
+        logger.info(f"LKML 收集完成: {len(lkml_data)} 条")
+        all_items.extend(lkml_data)
+    except Exception as e:
+        logger.error(f"LKML 收集失败: {e}")
     
     # 收集 Git 数据
     logger.info("收集 Git 数据...")
-    git_collector = GitCollector()
-    git_data = git_collector.fetch(date_str)
-    logger.info(f"Git 收集完成: {len(git_data)} 条")
+    try:
+        git_collector = GitCollector()
+        git_data = git_collector.fetch(date_str)
+        logger.info(f"Git 收集完成: {len(git_data)} 条")
+        all_items.extend(git_data)
+    except Exception as e:
+        logger.error(f"Git 收集失败: {e}")
+    
+    if not all_items:
+        logger.error("没有收集到任何数据")
+        return None
     
     # AI 摘要处理
-    logger.info("生成 AI 摘要...")
-    processed_data = summarizer.process_daily(lkml_data + git_data)
+    logger.info(f"生成 AI 摘要（共 {len(all_items)} 条）...")
+    processed_data = summarizer.process_daily(all_items)
     
     # 生成报告
     logger.info("生成报告文件...")

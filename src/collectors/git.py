@@ -34,21 +34,28 @@ class GitCollector:
         self.repo = None
         
     def _ensure_repo(self):
-        """确保本地仓库存在"""
+        """确保本地仓库存在（使用浅克隆加速）"""
         if os.path.exists(os.path.join(self.local_path, '.git')):
             logger.info(f"Using existing repo: {self.local_path}")
             self.repo = git.Repo(self.local_path)
-            # 更新到最新
+            # 只获取最新提交，不拉取完整历史
             try:
-                self.repo.remotes.origin.pull()
-                logger.info("Repository updated")
+                self.repo.remotes.origin.fetch(depth=100, verbose=False)
+                logger.info("Repository updated (shallow fetch)")
             except Exception as e:
                 logger.warning(f"Failed to update repo: {e}")
         else:
-            logger.info(f"Cloning repo to: {self.local_path}")
+            logger.info(f"Cloning repo (shallow) to: {self.local_path}")
             os.makedirs(self.local_path, exist_ok=True)
-            self.repo = git.Repo.clone_from(self.REPO_URL, self.local_path)
-            logger.info("Repository cloned")
+            # 使用浅克隆，只下载最近100个提交
+            self.repo = git.Repo.clone_from(
+                self.REPO_URL, 
+                self.local_path,
+                depth=100,  # 只克隆最近100个提交
+                no_single_branch=True,
+                verbose=False
+            )
+            logger.info("Repository cloned (shallow)")
     
     def fetch(self, date_str: str, max_commits: int = 100) -> List[Dict]:
         """

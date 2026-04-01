@@ -27,9 +27,18 @@ class LKMLCollector:
     
     def __init__(self):
         self.session = requests.Session()
+        # 模拟真实浏览器请求头
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
         })
+        # 添加延时避免被封
+        self.last_request_time = 0
+        self.min_interval = 2  # 最小请求间隔2秒
     
     def fetch(self, date_str: str) -> List[Dict]:
         """
