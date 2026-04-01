@@ -7,6 +7,9 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# 添加 src 到路径
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -20,10 +23,10 @@ def generate_daily_report(date_str: str):
     logger.info(f"开始生成日报: {date_str}")
     
     # 导入收集器
-    from src.collectors.lkml import LKMLCollector
-    from src.collectors.git import GitCollector
-    from src.processors.ai_summarizer import KimiSummarizer
-    from src.processors.report_generator import ReportGenerator
+    from collectors.lkml import LKMLCollector
+    from collectors.git import GitCollector
+    from processors.ai_summarizer import KimiSummarizer
+    from processors.report_generator import ReportGenerator
     
     # 初始化组件
     summarizer = KimiSummarizer()
@@ -57,7 +60,7 @@ def generate_weekly_report(date_str: str):
     """生成周报"""
     logger.info(f"开始生成周报: {date_str}")
     
-    from src.processors.report_generator import ReportGenerator
+    from processors.report_generator import ReportGenerator
     
     report_gen = ReportGenerator()
     
@@ -82,7 +85,7 @@ def generate_kernel_report(version: str):
     """生成特定内核版本分析"""
     logger.info(f"开始生成内核 {version} 分析报告")
     
-    from src.processors.report_generator import ReportGenerator
+    from processors.report_generator import ReportGenerator
     
     report_gen = ReportGenerator()
     report_path = report_gen.generate_kernel_analysis(version)
@@ -95,7 +98,7 @@ def submit_to_website(report_paths: list):
     """提交报告到网站仓库"""
     logger.info(f"提交 {len(report_paths)} 个报告到网站")
     
-    from src.exporters.website_pr import WebsitePR
+    from exporters.website_pr import WebsitePR
     
     pr_creator = WebsitePR()
     pr_url = pr_creator.create_pr(report_paths)
