@@ -1,0 +1,16 @@
+Initial commit: Linux Performance Insights system
+
+- Automated daily/weekly performance report generation
+- LKML mailing list collector
+- Git mainline commit analyzer
+- Kimi AI summarization
+- Markdown report generator
+- GitHub Actions workflows for automation
+- PR submission to website repo
+
+Features:
+- Collect from LKML, Git mainline, LWN
+- AI-powered Chinese summaries
+- Automatic report generation (daily/weekly)
+- Auto-submit to website via PR
+- Support for kernel version analysis

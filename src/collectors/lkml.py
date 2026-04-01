@@ -73,14 +73,58 @@ class LKMLCollector:
         """解析 LKML 页面"""
         emails = []
         
-        # 查找所有邮件条目
-        # LKML 的 HTML 结构：每个邮件在一个 <b> 标签中
-        for item in soup.find_all('b'):
-            email = self._parse_email_item(item)
-            if email and self._should_include(email):
-                emails.append(email)
+        # LKML 页面结构：邮件在一个表格中，每个邮件一行
+        # 查找所有包含 [PATCH] 或 [New] 的链接
+        for link in soup.find_all('a', href=True):
+            href = link.get('href', '')
+            text = link.get_text(strip=True)
+            
+            # 检查是否是邮件链接（通常是 /lkml/YYYY/... 格式）
+            if '/lkml/' in href and ('[PATCH]' in text or '[New]' in text):
+                email = self._parse_email_link(link)
+                if email and self._should_include(email):
+                    emails.append(email)
         
         return emails
+    
+    def _parse_email_link(self, link) -> Dict:
+        """解析邮件链接"""
+        try:
+            href = link.get('href', '')
+            text = link.get_text(strip=True)
+            
+            # 获取父元素的文本，可能包含作者信息
+            parent = link.find_parent()
+            full_text = parent.get_text(strip=True) if parent else text
+            
+            # 提取标题（去除 [New] 标记）
+            title = text.replace('[New]', '').strip()
+            
+            # 尝试从完整文本提取作者
+            author = "Unknown"
+            # 作者通常在链接后面，尝试匹配
+            author_match = re.search(r'(?:\[New\])?\s*([^[]+?)\s*$', full_text)
+            if author_match:
+                potential_author = author_match.group(1).strip()
+                # 如果提取的内容太长，可能是包含了其他内容
+                if len(potential_author) < 100 and potential_author != title:
+                    author = potential_author
+            
+            # 构建完整 URL
+            full_url = urljoin(self.BASE_URL, href)
+            
+            return {
+                'source': 'LKML',
+                'title': title,
+                'author': author,
+                'url': full_url,
+                'content': '',  # 需要单独获取详情页
+                'type': self._detect_type(title),
+            }
+            
+        except Exception as e:
+            logger.warning(f"Failed to parse email link: {e}")
+            return None
     
     def _parse_email_item(self, item) -> Dict:
         """解析单个邮件条目"""
