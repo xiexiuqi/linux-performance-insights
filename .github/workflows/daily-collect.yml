@@ -1,0 +1,73 @@
+name: Daily Performance Collection
+
+on:
+  schedule:
+    # 每天凌晨 2:00 UTC (北京时间 10:00)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Date to collect (YYYY-MM-DD)'
+        required: false
+        default: ''
+
+jobs:
+  collect-and-generate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Setup Git
+        run: |
+          git config --global user.email "insights@bot.local"
+          git config --global user.name "Linux Performance Insights"
+      
+      - name: Determine date
+        id: date
+        run: |
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            echo "DATE=${{ github.event.inputs.date }}" >> $GITHUB_OUTPUT
+          else
+            echo "DATE=$(date -d 'yesterday' +%Y-%m-%d)" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Generate daily report
+        env:
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+        run: |
+          python src/main.py --mode daily --date ${{ steps.date.outputs.DATE }}
+      
+      - name: Upload reports as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-reports-${{ steps.date.outputs.DATE }}
+          path: reports/daily/*.md
+          retention-days: 7
+      
+      - name: Submit to website repo
+        env:
+          WEBSITE_REPO_TOKEN: ${{ secrets.WEBSITE_REPO_TOKEN }}
+        run: |
+          python src/main.py --mode daily --date ${{ steps.date.outputs.DATE }} --submit
+
+  notify:
+    needs: collect-and-generate
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+      - name: Notify failure
+        run: |
+          echo "Daily collection failed!"
+          # TODO: Add Slack/WeChat notification here

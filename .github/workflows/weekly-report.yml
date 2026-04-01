@@ -1,0 +1,61 @@
+name: Weekly Performance Report
+
+on:
+  schedule:
+    # 每周一凌晨 3:00 UTC (北京时间 11:00)
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: 'Start date (YYYY-MM-DD)'
+        required: false
+        default: ''
+
+jobs:
+  generate-weekly:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Setup Git
+        run: |
+          git config --global user.email "insights@bot.local"
+          git config --global user.name "Linux Performance Insights"
+      
+      - name: Determine date range
+        id: date
+        run: |
+          if [ -n "${{ github.event.inputs.start_date }}" ]; then
+            echo "DATE=${{ github.event.inputs.start_date }}" >> $GITHUB_OUTPUT
+          else
+            # 上周一
+            echo "DATE=$(date -d 'last monday' +%Y-%m-%d)" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Generate weekly report
+        run: |
+          python src/main.py --mode weekly --date ${{ steps.date.outputs.DATE }}
+      
+      - name: Upload reports as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-reports
+          path: reports/weekly/*.md
+          retention-days: 30
+      
+      - name: Submit to website repo
+        env:
+          WEBSITE_REPO_TOKEN: ${{ secrets.WEBSITE_REPO_TOKEN }}
+        run: |
+          python src/main.py --mode weekly --date ${{ steps.date.outputs.DATE }} --submit

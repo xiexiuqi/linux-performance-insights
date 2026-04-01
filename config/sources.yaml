@@ -1,0 +1,172 @@
+# Linux Performance Insights Configuration
+
+sources:
+  # LKML 邮件列表
+  lkml:
+    enabled: true
+    type: mailing_list
+    url: https://lkml.org/
+    fetch_days: 1
+    filters:
+      exclude_authors:
+        - "kernel test robot"
+        - "tip-bot2"
+      include_patterns:
+        - "PATCH"
+        - "pull"
+        - "RFC"
+    
+  # Git 主线仓库
+  git_mainline:
+    enabled: true
+    type: git
+    repo: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+    local_path: /tmp/linux.git
+    max_commits: 100
+    fetch_since_days: 1
+    
+  # LWN 文章
+  lwn:
+    enabled: true
+    type: rss
+    url: https://lwn.net/headlines/rss
+    login_url: https://lwn.net/Login/
+    # 从环境变量读取凭据
+    username: ${LWN_USERNAME}
+    password: ${LWN_PASSWORD}
+
+# 子系统分类规则
+subsystems:
+  - name: Scheduler
+    patterns:
+      - "kernel/sched/"
+      - "include/linux/sched"
+    keywords:
+      - "scheduler"
+      - "cfs"
+      - "rt"
+      
+  - name: Memory
+    patterns:
+      - "mm/"
+      - "include/linux/mm"
+    keywords:
+      - "memory"
+      - "mm"
+      - "page"
+      
+  - name: Filesystem
+    patterns:
+      - "fs/"
+      - "include/linux/fs"
+    keywords:
+      - "filesystem"
+      - "ext4"
+      - "xfs"
+      
+  - name: Networking
+    patterns:
+      - "net/"
+      - "drivers/net/"
+    keywords:
+      - "network"
+      - "tcp"
+      - "udp"
+      
+  - name: IO
+    patterns:
+      - "block/"
+      - "drivers/nvme/"
+      - "drivers/scsi/"
+    keywords:
+      - "io"
+      - "block"
+      - "nvme"
+      
+  - name: eBPF
+    patterns:
+      - "kernel/bpf/"
+      - "tools/bpf/"
+    keywords:
+      - "bpf"
+      - "ebpf"
+      
+  - name: Security
+    patterns:
+      - "security/"
+    keywords:
+      - "security"
+      - "selinux"
+      
+  - name: Virtualization
+    patterns:
+      - "virt/"
+      - "arch/*/kvm/"
+    keywords:
+      - "kvm"
+      - "virtualization"
+
+# AI 配置
+ai:
+  provider: kimi
+  model: moonshot-v1-8k
+  temperature: 0.7
+  max_tokens: 2000
+  
+  # 日报提示词
+  daily_prompt: |
+    你是一位资深的 Linux 内核性能专家。请对以下内核补丁/提交进行分析和总结。
+    
+    要求：
+    1. 用简洁的中文概括每个补丁的核心内容（1-2句话）
+    2. 判断类型：feature（新特性）、bugfix（缺陷修复）、perf（性能优化）、other（其他）
+    3. 识别相关的内核子系统（如 scheduler、memory、filesystem 等）
+    4. 如果是性能优化，请说明优化目标和预期效果
+    5. 按照重要性排序，优先展示重要补丁
+    
+    输出格式：
+    ### [类型] 标题
+    **作者**: xxx
+    **子系统**: xxx
+    **摘要**: xxx
+    **影响**: xxx（如果是perf或重要feature）
+  
+  # 周报提示词
+  weekly_prompt: |
+    你是一位资深的 Linux 内核性能专家。请基于本周的内核动态生成一份周报总结。
+    
+    报告结构：
+    1. 本周概览：统计数据（新特性数、bugfix数、性能优化数）
+    2. 重点推荐：3-5个最重要的补丁/特性，详细解读
+    3. 子系统动态：按子系统分类的变更汇总
+    4. 性能优化专题：本周所有性能相关的优化汇总
+    5. 值得关注：预览即将合入的重要特性
+    
+    要求：
+    - 使用专业但易懂的语言
+    - 提供技术背景说明
+    - 指出对实际应用的潜在影响
+
+# 报告输出配置
+output:
+  # 日报配置
+  daily:
+    format: markdown
+    max_items: 50
+    include_details: true
+    
+  # 周报配置
+  weekly:
+    format: markdown
+    group_by_subsystem: true
+    include_charts: false
+    
+  # 网站PR配置
+  website:
+    repo: xiexiuqi/xiexiuqi.github.io
+    branch_prefix: auto/insights
+    auto_merge: true
+    paths:
+      daily: daily/
+      weekly: reports/weekly/
+      kernel: reports/
